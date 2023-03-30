@@ -1,6 +1,7 @@
 import { createTRPCRouter } from "~/server/api/trpc";
 import { exampleRouter } from "~/server/api/routers/example";
 import { tweetRouter } from "~/server/api/routers/tweet";
+import { tweetLikeRouter } from "~/server/api/routers/tweetLike";
 import { userRouter } from "~/server/api/routers/user";
 
 /**
@@ -11,6 +12,7 @@ import { userRouter } from "~/server/api/routers/user";
 export const appRouter = createTRPCRouter({
   example: exampleRouter,
   tweet: tweetRouter,
+  tweetLike: tweetLikeRouter,
   user: userRouter,
 });
 

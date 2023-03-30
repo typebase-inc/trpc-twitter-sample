@@ -3,6 +3,7 @@ import { useSession } from "next-auth/react";
 import Error from "next/error";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import produce from "immer";
 
 import { DefaultLayout } from "~/components/DefaultLayout";
 import { UserIcon } from "~/components/UserIcon";
@@ -33,6 +34,8 @@ export default function UserIdIndex() {
   const { data: tweets = [], isLoading: isLoadingTweets } =
     api.tweet.getAllByUserId.useQuery({ userId }, { enabled: router.isReady });
   const utils = api.useContext();
+  const tweetLikeLikeOrUnlikeMutation =
+    api.tweetLike.likeOrUnlike.useMutation();
 
   if (isLoadingUser)
     return (
@@ -59,6 +62,35 @@ export default function UserIdIndex() {
       }
     );
     reset();
+  }
+
+  function handleLikeClick(tweetId: string) {
+    if (!session) {
+      alert("ログインしてください。");
+      return;
+    }
+    if (tweetLikeLikeOrUnlikeMutation.isLoading) return;
+    tweetLikeLikeOrUnlikeMutation.mutate(
+      { tweetId },
+      {
+        onSuccess(data) {
+          utils.tweet.getAllByUserId.setData({ userId }, (old) =>
+            produce(old, (draft) => {
+              const tweet = draft?.find((t) => t.id === tweetId);
+              if (!tweet) return draft;
+              const likeIndex = tweet.likes.findIndex(
+                (like) => like.userId === data.userId
+              );
+              if (likeIndex === -1) {
+                tweet.likes.push(data);
+              } else {
+                tweet.likes.splice(likeIndex, 1);
+              }
+            })
+          );
+        },
+      }
+    );
   }
 
   return (
@@ -99,7 +131,12 @@ export default function UserIdIndex() {
       </div>
       <div>
         <h2 className="mb-2 font-bold">ツイート</h2>
-        <TweetList tweets={tweets} isLoading={isLoadingTweets} />
+        <TweetList
+          tweets={tweets}
+          isLoading={isLoadingTweets}
+          handleLikeClick={handleLikeClick}
+          currentUserId={session?.user.id}
+        />
       </div>
     </DefaultLayout>
   );
