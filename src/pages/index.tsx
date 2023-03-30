@@ -63,7 +63,7 @@ const AuthShowcase: React.FC = () => {
 
   const { data: secretMessage } = api.example.getSecretMessage.useQuery(
     undefined, // no input
-    { enabled: sessionData?.user !== undefined },
+    { enabled: sessionData?.user !== undefined }
   );
 
   return (
@@ -78,6 +78,11 @@ const AuthShowcase: React.FC = () => {
       >
         {sessionData ? "Sign out" : "Sign in"}
       </button>
+      {sessionData && (
+        <Link className="text-white" href={`/${sessionData.user?.id}`}>
+          マイページ
+        </Link>
+      )}
     </div>
   );
 };
