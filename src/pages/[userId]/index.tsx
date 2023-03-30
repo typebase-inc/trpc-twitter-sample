@@ -4,6 +4,7 @@ import Error from "next/error";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import produce from "immer";
+import Link from "next/link";
 
 import { DefaultLayout } from "~/components/DefaultLayout";
 import { UserIcon } from "~/components/UserIcon";
@@ -36,6 +37,8 @@ export default function UserIdIndex() {
   const utils = api.useContext();
   const tweetLikeLikeOrUnlikeMutation =
     api.tweetLike.likeOrUnlike.useMutation();
+  const userFollowFollowOrUnfollowMutation =
+    api.userFollow.followOrUnfollow.useMutation();
 
   if (isLoadingUser)
     return (
@@ -93,6 +96,31 @@ export default function UserIdIndex() {
     );
   }
 
+  function handleFollow() {
+    if (userFollowFollowOrUnfollowMutation.isLoading) return;
+    userFollowFollowOrUnfollowMutation.mutate(
+      { targetId: userId },
+      {
+        onSuccess(data) {
+          utils.user.getByUserId.setData({ userId }, (old) => {
+            const followIndex =
+              old?.followers.findIndex(
+                (follower) => follower.userId === session?.user.id
+              ) ?? -1;
+            if (followIndex === -1) {
+              return produce(old, (draft) => {
+                draft?.followers.push(data);
+              });
+            }
+            return produce(old, (draft) => {
+              draft?.followers.splice(followIndex, 1);
+            });
+          });
+        },
+      }
+    );
+  }
+
   return (
     <DefaultLayout session={session}>
       <div className="flex flex-col gap-2">
@@ -100,10 +128,33 @@ export default function UserIdIndex() {
           <div className="h-24 w-24">
             <UserIcon {...user} />
           </div>
+          {session && userId !== session?.user.id && (
+            <button
+              className="rounded-full bg-gray-700 px-4 py-2 text-white hover:bg-gray-600 disabled:bg-gray-200"
+              onClick={handleFollow}
+              disabled={userFollowFollowOrUnfollowMutation.isLoading}
+            >
+              {!user?.followers.find(
+                (follower) => follower.userId === session?.user.id
+              )
+                ? "フォロー"
+                : "フォロー解除"}
+            </button>
+          )}
         </div>
         <div className="flex flex-col">
           <h1 className="text-2xl font-bold">{user?.name ?? "no name"}</h1>
           <div className="text-slate-700">@{user?.id ?? "---"}</div>
+          <div className="mt-3 flex gap-3 text-sm">
+            <Link href={`/${userId}/following`}>
+              <span className="font-bold">{user.following.length}</span>{" "}
+              フォロー中
+            </Link>
+            <Link href={`/${userId}/followers`}>
+              <span className="font-bold">{user.followers.length}</span>{" "}
+              フォロワー
+            </Link>
+          </div>
         </div>
       </div>
       <div className="mt-4">
