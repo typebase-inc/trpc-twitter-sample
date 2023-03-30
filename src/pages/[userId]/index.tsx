@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { DefaultLayout } from "~/components/DefaultLayout";
 import { UserIcon } from "~/components/UserIcon";
+import { TweetList } from "~/components/TweetList";
 import { api } from "~/utils/api";
 import {
   tweetContentSchema,
@@ -29,6 +30,9 @@ export default function UserIdIndex() {
   const { data: user, isLoading: isLoadingUser } =
     api.user.getByUserId.useQuery({ userId }, { enabled: router.isReady });
   const tweetAddMutation = api.tweet.add.useMutation();
+  const { data: tweets = [], isLoading: isLoadingTweets } =
+    api.tweet.getAllByUserId.useQuery({ userId }, { enabled: router.isReady });
+  const utils = api.useContext();
 
   if (isLoadingUser)
     return (
@@ -43,7 +47,17 @@ export default function UserIdIndex() {
 
   function onSubmit({ content }: TweetContentSchema) {
     if (tweetAddMutation.isLoading) return;
-    tweetAddMutation.mutate({ content });
+    tweetAddMutation.mutate(
+      { content },
+      {
+        onSuccess(data) {
+          utils.tweet.getAllByUserId.setData({ userId: data.userId }, [
+            data,
+            ...tweets,
+          ]);
+        },
+      }
+    );
     reset();
   }
 
@@ -82,6 +96,10 @@ export default function UserIdIndex() {
             </button>
           </form>
         )}
+      </div>
+      <div>
+        <h2 className="mb-2 font-bold">ツイート</h2>
+        <TweetList tweets={tweets} isLoading={isLoadingTweets} />
       </div>
     </DefaultLayout>
   );
